@@ -54,6 +54,11 @@ Main {
     
     def run
       if params[:init].given?
+        rename_remote 'origin', 'shack'
+        FileUtils.rm_rf 'features'
+        FileUtils.rm 'Gemfile'
+        FileUtils.mv 'README.textile', 'README.shack.textile'
+        
         puts "SHack has been properly initilized... Now you can start Slide Hacking!"
       elsif params[:update].given?
         puts "unimplemented"
@@ -198,7 +203,19 @@ Main {
     end
   end
   
-# ==================== GIT wrappers ============================================  
+  
+  def update_shack
+    
+  end
+  
+# ==================== GIT wrappers ============================================
+  def rename_remote( old_name, new_name)
+    s = `git status 2>&1`
+    raise Error, NOSHACKERROR if s.match /^fatal:/
+    
+    `git remote rename #{old_name} #{new_name}`
+  end
+  
   def steps
     s = `git branch 2>&1`
     raise Error, NOSHACKERROR if s.match /^fatal:/
