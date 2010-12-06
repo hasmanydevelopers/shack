@@ -55,13 +55,34 @@ Main {
     def run
       if params[:init].given?
         rename_remote 'origin', 'shack'
+        `git remote add shack_core  git@github.com:hasmanydevelopers/shack-core.git`
         `git rm -r features`
         `git rm Gemfile`
         `git mv README.textile README.shack.textile`
+        # subtree merge, for more info refer to http://progit.org/book/ch6-7.html
+        
+        `git fetch shack_core`
+        `git checkout -b shack_core shack_core/master`
+        
         `git commit -a -m"SHack has been properly initialized"`
         puts "SHack has been properly initilized... Now you can start Slide Hacking!"
       elsif params[:update].given?
-        puts "unimplemented"
+        `git checkout shack_core`
+        `git pull shack_core`
+        
+        #update every step
+        steps.each do |s|
+          `git checkout #{s}`
+          `git merge --squash -s subtree shack_core`
+          `git commit -a -m"SHack has been properly updated"`
+        end
+        
+        #don't forget master
+        `git checkout master`
+        `git merge --squash -s subtree shack_core`
+        `git commit -a -m"SHack has been properly updated"`
+        
+        puts "SHack has been properly updated... Now you are using SHack version 0.0.0"
       end 
     end
     
