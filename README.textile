@@ -1,0 +1,44 @@
+h1. Welcome to our SHack
+
+*SHack* is what happens when you put together _The Fast Version Control System_
+"Git":http://git-scm.com/ with "Eric Meyer’s Simple Standards-Based Slide Show 
+System":http://meyerweb.com/eric/tools/s5/ offspring, "S6":https://github.com/geraldb/s6
+
+A *SHack* is a *Git* version controlled set of *Steps*, where each Step comprises
+a set of *Slides*, and the matching *Source Code*. Or in other words, a code-centric
+presentation, where your slides and your source code hold their hands and walk
+together for your happines :)
+
+Each *Step* is a Git *Branch*, _yes_ a Git *Branch*, named following a numeric 
+secuence, like:
+
+<pre><code>
+$ git branch 
+  001-Hello
+  002-Generate_a_Rails_base_application
+  003-Add_a_Resource
+* master
+</code></pre>
+
+The Slides are simple "Textile":http://redcloth.org/textile/ tagged text files
+living inside the special @slides/@ folder. For each *Step* (branch) there is a
+matching *Slide* named in the same way, in this case:
+
+<pre><code>
+$ ls  slides/
+001-Hello.textile
+002-Generate_a_Rails_base_application.textile
+003-Add_a_Resource.textile
+</code></pre>
+
+*SHack* gives you the tools to build, manage and navigate this structure, 
+generating the associated *Slideshow* with the HTML, CSS & JavaScript (JQuery) 
+mix provided by "S6":https://github.com/geraldb/s6
+
+At any moment of your presentation, course or workshop, you will have both the
+exact slides and the code in its matching state. Isn't your life much better now?
+
+Also if you are using "GitHub":https://github.com/, your *SHack* can be forked 
+at any time to allow people to contribute in a controlled manner, or just update 
+it to the latest versions of the always evolving technologie you are using.
+
