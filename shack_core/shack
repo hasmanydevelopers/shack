@@ -1,0 +1,307 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+
+def load_gem (gem_name, version = "" )
+  require gem_name
+rescue LoadError => e
+  puts "Please install the #{gem_name} gem."
+  install_str = "Try: gem install #{gem_name}"
+  install_str = " -v '>= 0.9.6'" unless version.empty?
+  puts install_str
+  exit
+end
+
+
+load_gem 'main' # TODO: Check for the existence of the gem like redcloth 
+load_gem 'redcloth' # TODO: Check for the existence of the gem like redcloth 
+load_gem 'directory_watcher' # TODO: Check for the existence of the gem like redcloth 
+
+load_gem 'fileutils'
+
+
+
+
+
+module RedCloth::Formatters::HTML
+  def code(opts)
+    opts[:block] = true
+    lang = opts[:lang] ? opts[:lang] : 'ruby'
+    txt = ""
+    if opts[:style]
+      unless opts[:text] == "\n"
+        inc_file = File.join(Dir.pwd, opts[:style].sub(";",""))
+        txt = File.open( inc_file ).read
+        txt << "\n\n" << opts[:text] unless opts[:text].match /!/
+      end
+    else
+      txt = opts[:text]
+    end
+    
+    src = CodeRay.scan(txt, :"#{lang}").div(:line_numbers => :table)
+    "<code#{pba(opts)}>#{src}</code>"
+  end
+end
+  
+  
+NOSHACKERROR = "Error: Your working dir is not a valid SHack repo"
+
+Main {
+
+  mode 'system' do
+    option 'init'
+    option 'update'
+    
+    def run
+      if params[:init].given?
+        puts "SHack has been properly initilized... Now you can start Slide Hacking!"
+      elsif params[:update].given?
+        puts "unimplemented"
+      end 
+    end
+    
+  end
+  
+  mode 'step' do
+    option('add', 'a'){
+      description 'add a slide using argument as title'
+      argument_optional
+      arity 1
+    }
+    
+    option('goto', 'g'){
+      description 'go to step, 0 for master'
+      argument_required
+      arity 1
+      cast :int
+    }
+    
+    option 'next', 'n'
+    option 'del', 'd'
+    option 'ls', 'l'
+    
+    def run
+      if params[:add].given?
+        name = ""
+        
+        title = params[:add].value == true ? "enter your slideshow text here" : params[:add].value
+        name = ""
+        
+        branches = steps
+        if branches.last.nil?
+          name << "%03d" % 1
+          name << "-#{title.gsub(/ /, '_')}" unless params[:add].value == true
+          add_step name
+        else
+          name << "%03d" % (branches.last[ /(\d+)/ ].to_i + 1)
+          name << "-#{title.gsub(/ /, '_')}" unless params[:add].value == true
+          add_step name
+        end
+        
+        slidepath = File.join(Dir.pwd, "slides")
+        File.open(File.join(slidepath,"#{name}.textile"), 'w') {|f| f.write("h1. #{title}\n\n")}
+        
+        add_file "slides/#{name}.textile"
+        puts "Added step #{name}"
+        
+      elsif params[:ls].given?
+        puts steps
+      elsif params[:goto].given?
+        puts step(params[:goto].value)
+      else
+        puts "Option unavailable..."
+      end
+    
+    rescue Exception => e
+      puts e.message
+    end
+  end
+  
+  mode 'build' do
+    
+    option('preview','p')
+    option('watch','w')
+    option('all','a')
+    
+    def run
+      
+      cur_name = status[:cur_branch]
+      all = params[:all].given?
+      all = true if cur_name == "master"
+      
+      regenerate( cur_name, all, params[:preview].given? )
+      if params[:watch].given?
+        sldpath = File.join(Dir.pwd, "slides")
+        watcher = DirectoryWatcher.new sldpath, :pre_load => true
+        watcher.interval = 1
+        watcher.add_observer do |*args|
+          args.each { |e| puts e }
+          regenerate( cur_name, all, params[:preview].given? )
+        end
+        
+        puts ">> watching for changes, press Enter to quit"
+        watcher.start
+        $stdout.flush
+        
+        $stdin.gets
+        puts ">> Shutting down"
+        watcher.stop
+      end
+      
+    rescue Exception => e
+      puts e.message
+    end
+    
+  end
+  
+  
+  
+  def run
+    usage=<<-EOF
+  
+  SHack USAGE: shack.rb <command> [options]
+  --help or -h for help
+  
+  For a list of available commands, run:
+    shack.rb -h
+    
+  For help on a specific command, run:
+    shack.rb <command> -h
+    
+    EOF
+    puts usage
+  end
+
+# ===================== Helpers ================================================  
+  def regenerate(name, all=false, preview=false)
+    files = []
+    sldpath = File.join(Dir.pwd, "slides")
+    
+    puts "Regenerating the SHack..."
+    Dir.new(sldpath).entries.sort.each do |e|
+      if all and e.match /^\d{3}(-\w+){0,1}.textile$/
+        puts "adding: #{e}"
+        files << File.join(sldpath, e)
+      elsif e == "#{name}.textile"
+        puts "adding: #{e}"
+        files << File.join(sldpath, e)
+        break
+      end
+    end
+    
+    $stdout.flush
+    
+    if preview
+      gen_slide_from files, "preview"
+    else
+      gen_slide_from files
+    end
+  end
+  
+# ==================== GIT wrappers ============================================  
+  def steps
+    s = `git branch 2>&1`
+    raise Error, NOSHACKERROR if s.match /^fatal:/
+    blist = s.gsub(/[ \*]/,"").split("\n")
+    blist.delete_if{ |b| !b.match /^\d{3}(-\w+){0,1}$/ }
+    blist.sort!
+  end
+  
+  def step(n)
+    s = `git checkout master 2>&1` 
+    raise Error, NOSHACKERROR if s.match /^fatal:/
+    return "Current step set to '#{b}'" if n == 0
+    
+    name = "%03d" % n
+    steps.each do |b|
+      if b.match /^#{name}/
+        `git checkout #{b} 2>&1`
+        return "Cannot switch steps, commit changes first" if $?.exitstatus > 0
+        return "Current step set to '#{b}'"
+      end
+    end
+    
+    "Current step set to 'master'"
+  end
+  
+  def status
+    s = `git status 2>&1`
+    raise Error, NOSHACKERROR if s.match /^fatal:/
+    
+    st = { :cur_branch => 'master', :clean => false, :msg => s }
+    
+    st[:clean] = true if s.match /working directory clean/
+    st[:cur_branch] = s.match(/^# On branch ([^\n]*)/)[1]
+    st
+  end
+  
+  
+  def add_step( name )
+    s = `git checkout -b #{name} 2>&1`
+    raise Error, NOSHACKERROR if s.match /^fatal:/
+    
+    true
+  end
+  
+  def add_file(file)
+    s = `git add #{file} 2>&1`
+    raise Error, NOSHACKERROR if s.match /^fatal:/
+    
+    `git commit -m "added file: #{file}" 2>&1`
+    
+    return false if $?.exitstatus > 0
+    
+    true
+  end
+  
+# ======================= Slide Generator ======================================
+  def gen_slide_from(files, out="slideshow", template = ".template")
+    tplpath = File.join(Dir.pwd,template)
+    sldpath = File.join(Dir.pwd,"slides")
+    outpath = File.join(Dir.pwd,out)
+    
+#    read template
+    content = File.open(File.join(tplpath,"top.html")).read
+    
+#    read, process and append each slide
+    files.each do |f|
+      tex = RedCloth.new( File.open(f).read, [:no_span_caps] )
+      tex.hard_breaks = false
+      content << tex.to_html
+    end
+    
+#    post process: add slide marker before H1 tags
+    slide_count = 0
+
+    content.gsub!( /<h1/ ) do |match|
+      slide_count += 1
+      if slide_count < 2
+        "\n<div class='slide cover'>\n#{Regexp.last_match(0)}"
+      else
+        "\n</div>\n\n<div class='slide'>\n#{Regexp.last_match(0)}"
+      end
+    end
+    content << "\n</div>\n\n"
+    
+#    add html close tags
+    content << File.open(File.join(tplpath,"bottom.html")).read
+    
+#    save contents
+    shapath = File.join(outpath, "shared")
+    FileUtils.cp_r(File.join(tplpath,"shared"), outpath)
+    FileUtils.cp(File.join(tplpath,"blank.css"), outpath)
+    
+    File.open(File.join(outpath,"slides.html"), "w") {|f| f.write content }
+    
+  end
+  
+  
+  class Error < RuntimeError
+    attr_reader :message
+
+    def initialize message
+      @message = message
+    end
+  end
+}
+
