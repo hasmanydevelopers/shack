@@ -55,10 +55,10 @@ Main {
     def run
       if params[:init].given?
         rename_remote 'origin', 'shack'
-        FileUtils.rm_rf 'features'
-        FileUtils.rm 'Gemfile'
-        FileUtils.mv 'README.textile', 'README.shack.textile'
-        
+        `git rm -r features`
+        `git rm Gemfile`
+        `git mv README.textile README.shack.textile`
+        `git commit -a -m"SHack has been properly initialized"`
         puts "SHack has been properly initilized... Now you can start Slide Hacking!"
       elsif params[:update].given?
         puts "unimplemented"
