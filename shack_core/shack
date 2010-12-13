@@ -51,6 +51,7 @@ Main {
     def run
       if params[:init].given?
         rename_remote 'origin', 'shack'
+
         `git remote add shack_core https://github.com/hasmanydevelopers/shack-core.git`
         `git rm -r features`
         `git rm Gemfile`
