@@ -5,17 +5,16 @@ require 'rubygems'
 def load_gem (gem_name, version = "" )
   require gem_name
 rescue LoadError => e
-  puts "Please install '#{gem_name}' gem."
+  puts "Please install the #{gem_name} gem."
   install_str = "Try: gem install #{gem_name}"
-  install_str = " -v '>= #{version}'" unless version.empty?
+  install_str = " -v '>= 0.9.6'" unless version.empty?
   puts install_str
   exit
 end
 
-load_gem 'main', "4.4.0"
-load_gem 'redcloth', "4.2.3"
-load_gem 'directory_watcher', "1.3.2"
-load_gem 'coderay', "0.9.6"
+load_gem 'main' # TODO: Check for the existence of the gem like redcloth
+load_gem 'redcloth' # TODO: Check for the existence of the gem like redcloth
+load_gem 'directory_watcher' # TODO: Check for the existence of the gem like redcloth
 
 load_gem 'fileutils'
 
@@ -46,13 +45,11 @@ Main {
   mode 'system' do
     option 'init'
     option 'update'
-    option("version", "v")
 
     def run
       if params[:init].given?
         rename_remote 'origin', 'shack'
-
-        `git remote add shack_core https://github.com/hasmanydevelopers/shack-core.git`
+        `git remote add shack_core  git@github.com:hasmanydevelopers/shack-core.git`
         `git rm -r features`
         `git rm Gemfile`
         `git mv README.textile README.shack.textile`
@@ -62,7 +59,6 @@ Main {
         `git checkout -b shack_core shack_core/master`
 
         `git commit -a -m"This SHack has been properly initialized"`
-        `git checkout master`
         puts "SHack has been successfully initilized. Now you can start Slide Hacking!"
 
       elsif params[:update].given?
@@ -73,7 +69,7 @@ Main {
         steps.each do |s|
           `git checkout #{s}`
           `git merge --squash -s subtree shack_core`
-          `git commit -a -m"SHack has been properly updated"`
+          `git commit -a -m"This SHack has been successfully updated"`
         end
 
         #don't forget master
@@ -82,9 +78,6 @@ Main {
         `git commit -a -m"SHack has been properly updated"`
 
         puts "This SHack has been successfully updated."
-    elsif params[:version].given?
-        version = DATA.read
-        puts "SHack version #{version}"
       end
     end
 
@@ -243,10 +236,7 @@ Available commands:
   def rename_remote( old_name, new_name)
     s = `git status 2>&1`
     raise Error, NOSHACKERROR if s.match /^fatal:/
-    remote = `git remote -v`
-    remote_url = remote.match(/#{old_name}([^ ]*)/)[1]
-    `git remote rm #{old_name}`
-    `git remote add #{new_name} #{remote_url}`
+    `git remote rename #{old_name} #{new_name}`
   end
 
   def steps
@@ -356,5 +346,3 @@ Available commands:
 
 }
 
-__END__
-1.0.0a
