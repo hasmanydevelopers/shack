@@ -5,7 +5,7 @@ require 'rubygems'
 def load_gem (gem_name, version = "" )
   require gem_name
 rescue LoadError => e
-  puts "Please install the #{gem_name} gem."
+  puts "Please install '#{gem_name}' gem."
   install_str = "Try: gem install #{gem_name}"
   install_str = " -v '>= #{version}'" unless version.empty?
   puts install_str
@@ -51,7 +51,7 @@ Main {
     def run
       if params[:init].given?
         rename_remote 'origin', 'shack'
-        `git remote add shack_core  git@github.com:hasmanydevelopers/shack-core.git`
+        `git remote add shack_core https://git@github.com/hasmanydevelopers/shack-core.git`
         `git rm -r features`
         `git rm Gemfile`
         `git mv README.textile README.shack.textile`
@@ -61,6 +61,7 @@ Main {
         `git checkout -b shack_core shack_core/master`
 
         `git commit -a -m"This SHack has been properly initialized"`
+        `git checkout master`
         puts "SHack has been successfully initilized. Now you can start Slide Hacking!"
 
       elsif params[:update].given?
@@ -80,8 +81,8 @@ Main {
         `git commit -a -m"SHack has been properly updated"`
 
         puts "This SHack has been successfully updated."
-      elsif params[:update].given?
-        version = "1.0.0a"
+    elsif params[:version].given?
+        version = DATA.read
         puts "SHack version #{version}"
       end
     end
@@ -354,3 +355,5 @@ Available commands:
 
 }
 
+__END__
+1.0.0a
